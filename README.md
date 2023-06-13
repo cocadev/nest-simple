@@ -68,9 +68,123 @@ export const devConfig: PostgresConnectionOptions = {
 ```
 
 ## Step 3: Make a Todo.entity.ts file in src/entity folder.
+
+```sh
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+ 
+@Entity('Todo')
+export class Todo {
+  @PrimaryGeneratedColumn()
+  id: number;
+ 
+  @Column()
+  name: string;
+ 
+  @Column({ default: false })
+  complete: boolean;
+}
+```
+
 ## Step 4: Make a todo.controller.ts file in src/controller folder.
+
+```sh
+import { Body, Controller, Delete, Get, Param, Post, Put, Req } from '@nestjs/common';
+import { Request } from 'express';
+import { TodoInterface, TodosService } from 'src/provider/todo.service';
+interface CreateTodoDto {
+  name: string,
+  complete: boolean
+}
+@Controller('cats')
+export class TodosController {
+constructor(private todosService: TodosService) {}
+@Post()
+  async create(@Body() createTodoDto: CreateTodoDto) {
+    const todo = await this.todosService.create(createTodoDto);
+    if(!todo) {
+      return 'error in creating todo'
+    }
+    return 'todo created successfully'
+  }
+@Get()
+  async findAll(@Req() request: Request) {
+    const cats: Array<TodoInterface> = await this.todosService.findAll()
+    return cats
+  }
+@Put(':id')
+  async update(@Param('id') id: string, @Body() body: any) {
+    const newCat: any = await this.todosService.update(id, body)
+    return "cat updated";
+  }
+@Delete(':id')
+  async remove(@Param('id') id: string) {
+    await this.todosService.delete(id)
+    return "cat deleted"
+  }
+}
+```
+
 ## Step 5: Make a todo.service.ts file in src/provider folder.
+
+```sh
+import { Body, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Todo } from 'src/entity/Todo.entity';
+import { Repository } from 'typeorm';
+export interface TodoInterface {
+  name: string,
+  complete: boolean,
+}
+@Injectable()
+export class TodosService {
+  constructor(
+    @InjectRepository(Todo)
+    private todoRepository: Repository<TodoInterface>,
+  ) {}
+create(todo: TodoInterface): Promise<TodoInterface> {
+    return this.todoRepository.save(
+      this.todoRepository.create(todo)
+    );
+  }
+findAll(): Promise<TodoInterface[]> {
+    return this.todoRepository.find();
+  }
+update(id: string, data: any): Promise<any> {
+    return this.todoRepository
+    .createQueryBuilder()
+    .update()
+    .set({
+      name: data.name
+    })
+    .where('id = :id', { id })
+    .execute()
+  }
+delete(id: string): Promise<any> {
+    return this.todoRepository
+    .createQueryBuilder()
+    .delete()
+    .from(Todo)
+    .where('id = :id', { id })
+    .execute()
+  }
+}
+```
 ## Step 6: Make a todo.module.ts file in src/module folder.
+
+```sh
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Todo } from 'src/entity/Todo.entity';
+import { TodosController } from '../controller/todo.controller';
+import { TodosService } from '../provider/todo.service';
+@Module({
+  imports: [TypeOrmModule.forFeature([Todo])],
+  controllers: [TodosController],
+  providers: [TodosService],
+})
+export class TodosModule {}
+```
 ## Step 7: run the project.
 
+npm run start:dev
 
